@@ -15,7 +15,7 @@ if (strpos($request_uri, '/index.php/api/') !== false) {
 
 // Provjeri da li ide prema FlightPHP API rutama
 if (strpos($request_uri, '/api/') !== false) {
-    // 🟩 NOVI FLIGHTPHP API (Milestone 3)
+    // 🟩 NOVI FLIGHTPHP API (Milestone 3)        
     require_once __DIR__ . '/routes/userRoutes.php';
     require_once __DIR__ . '/routes/carRoutes.php';
     require_once __DIR__ . '/routes/subscriptionRoutes.php';
