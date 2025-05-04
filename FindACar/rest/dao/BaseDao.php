@@ -58,7 +58,8 @@ class BaseDao {
             $sql = "UPDATE {$this->table} SET $fields WHERE id = :id";
             $stmt = $this->connection->prepare($sql);
             $data['id'] = $id;
-            return ['success' => $stmt->execute($data)];
+            $stmt->execute($data);
+            return ['updated' => $stmt->rowCount() > 0];
         } catch (PDOException $e) {
             return ['error' => $e->getMessage()];
         }
@@ -68,9 +69,11 @@ class BaseDao {
         try {
             $stmt = $this->connection->prepare("DELETE FROM {$this->table} WHERE id = :id");
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            return ['success' => $stmt->execute()];
+            $stmt->execute();
+            return ['deleted' => $stmt->rowCount() > 0];
         } catch (PDOException $e) {
             return ['error' => $e->getMessage()];
         }
     }
 }
+?>
