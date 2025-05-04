@@ -8,12 +8,12 @@ header("Access-Control-Allow-Headers: Content-Type");
 // Ispravno učitavanje URI
 $request_uri = $_SERVER['REQUEST_URI'];
 
-// Popravi detekciju ako je u URL-u prisutan index.php
+// Popravi detekciju ako je u URL-u prisutan index.php                      
 if (strpos($request_uri, '/index.php/api/') !== false) {
     $request_uri = str_replace('/index.php', '', $request_uri);
 }
 
-// Provjeri da li ide prema FlightPHP API rutama
+// Provjeri da li ide prema FlightPHP API rutama      
 if (strpos($request_uri, '/api/') !== false) {
     // 🟩 NOVI FLIGHTPHP API (Milestone 3)        
     require_once __DIR__ . '/routes/userRoutes.php';
