@@ -3,7 +3,7 @@ require_once 'BaseDao.php';
 
 class CarsDAO extends BaseDao {
     public function __construct() {
-        parent::__construct('Cars');
+        parent::__construct('cars');
         // test konekcije
     if (!$this->connection) {
         die("❌ Connection failed");
