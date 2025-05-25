@@ -12,10 +12,16 @@ Flight::route('GET /api/contact/@id', function($id) {
 });
 
 Flight::route('POST /api/contact', function() {
+    Flight::auth_middleware()->authorizeAnyRole(["user", "admin"]);
+
     $data = Flight::request()->data->getData();
+    $user = Flight::get('user'); // Dohvati korisnika iz tokena
+    $data['user_id'] = $user->id; // Dodaj user_id u podatke
+
     $service = new ContactFormService();
     Flight::json($service->createContact($data));
 });
+
 
 Flight::route('PUT /api/contact/@id', function($id) {
     $data = Flight::request()->data->getData();
@@ -27,3 +33,4 @@ Flight::route('DELETE /api/contact/@id', function($id) {
     $service = new ContactFormService();
     Flight::json($service->deleteContact($id));
 });
+

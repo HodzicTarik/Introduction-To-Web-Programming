@@ -1,29 +1,36 @@
 <?php
 require_once __DIR__ . '/../services/ReservationService.php';
 
-Flight::route('GET /api/reservations', function() {
-    $service = new ReservationService();
-    Flight::json($service->getAllReservations());
+Flight::route('GET /reservations', function() {
+    Flight::auth_middleware()->authorizeAnyRole([Roles::USER, Roles::ADMIN]);
+    Flight::json(Flight::reservation_service()->getAllReservations());
 });
 
-Flight::route('GET /api/reservations/@id', function($id) {
-    $service = new ReservationService();
-    Flight::json($service->getReservationById($id));
+Flight::route('GET /reservations/@id', function($id) {
+    Flight::auth_middleware()->authorizeAnyRole([Roles::USER, Roles::ADMIN]);
+    Flight::json(Flight::reservation_service()->getReservationById($id));
 });
 
-Flight::route('POST /api/reservations', function() {
+Flight::route('POST /reservations', function() {
+    Flight::auth_middleware()->authorizeAnyRole([Roles::USER, Roles::ADMIN]);
+
     $data = Flight::request()->data->getData();
-    $service = new ReservationService();
-    Flight::json($service->createReservation($data));
+    $user = Flight::get('user');
+
+    // ✅ dodaj user_id u rezervaciju iz tokena
+    $data['user_id'] = $user->id;
+
+    Flight::json(Flight::reservation_service()->createReservation($data));
 });
 
-Flight::route('PUT /api/reservations/@id', function($id) {
+
+Flight::route('PUT /reservations/@id', function($id) {
+    Flight::auth_middleware()->authorizeAnyRole([Roles::USER, Roles::ADMIN]);
     $data = Flight::request()->data->getData();
-    $service = new ReservationService();
-    Flight::json($service->updateReservation($id, $data));
+    Flight::json(Flight::reservation_service()->updateReservation($id, $data));
 });
 
-Flight::route('DELETE /api/reservations/@id', function($id) {
-    $service = new ReservationService();
-    Flight::json($service->deleteReservation($id));
+Flight::route('DELETE /reservations/@id', function($id) {
+    Flight::auth_middleware()->authorizeAnyRole([Roles::USER, Roles::ADMIN]);
+    Flight::json(Flight::reservation_service()->deleteReservation($id));
 });

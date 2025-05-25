@@ -27,5 +27,6 @@ class ContactFormService {
     public function deleteContact($id) {
         return $this->contactFormDao->delete($id);
     }
+
 }
 ?>

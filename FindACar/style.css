@@ -452,8 +452,11 @@ textarea.form-control {
     color: #007bff;
 }
 
+.account-link a{
+    color: #007bff;
+}
+
 .text-center a {
-    color: #ffffff;
     text-decoration: none;
 }
 
@@ -881,9 +884,7 @@ input:checked + .slider:before {
     transform: translateX(26px);
 }
 
-.account-link a{
-    color: #007bff;
-}
+
 
 /* Modal - Background */
 .modal_subscription {
@@ -963,6 +964,7 @@ input:checked + .slider:before {
 .pay_btn:hover {
     background: #45a049;
 }
+
 
 
 /* Responsive Design */

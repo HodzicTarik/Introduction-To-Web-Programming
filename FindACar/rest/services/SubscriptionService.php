@@ -17,15 +17,20 @@ class SubscriptionService {
     }
 
     public function createSubscription($data) {
-        return $this->subscriptionDao->insert($data);
+        return $this->subscriptionDao->insert($data); // očekuje 'plan', 'price', 'description', itd.
     }
 
     public function updateSubscription($id, $data) {
-        return $this->subscriptionDao->update($id, $data);
+        return $this->subscriptionDao->update($id, $data); // očekuje sve podatke za ažuriranje
     }
 
     public function deleteSubscription($id) {
         return $this->subscriptionDao->delete($id);
     }
+
+    public function getTemplateSubscriptions() {
+    return $this->subscriptionDao->getTemplatesOnly();
+}
+
 }
 ?>

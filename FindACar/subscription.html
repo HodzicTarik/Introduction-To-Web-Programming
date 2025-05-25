@@ -1,84 +1,227 @@
-<!-- PRICING SECTION -->
 <section id="subscription" class="subscriptions text-center py-5">
-    <h2 class="title">SEE OUR <span class="highlight">PRICING PLAN</span></h2>
+<h2 class="title">SEE OUR <span class="highlight">PRICING PLAN</span></h2>
+<!-- Pricing container -->
+<div class="container mt-5">
+  <div class="text-center mb-4 d-flex justify-content-center align-items-center gap-3">
+    <span class="fw-bold">Monthly</span>
+    <label class="switch">
+      <input type="checkbox" id="togglePlan" />
+      <span class="slider"></span>
+    </label>
+    <span class="fw-bold">Yearly</span>
+  </div>
+  <div class="row" id="pricingCards"></div>
+</div>
 
-    <div class="container">
-        <!-- Custom Toggle Switch -->
-        <div class="text-center my-4">
-            <label class="switch">
-                <input type="checkbox" id="togglePlan">
-                <span class="slider"></span>
-            </label>
-        </div>
-
-        <div class="row justify-content-center">
-            <!-- Essential Plan -->
-            <div class="col-md-4">
-                <div class="plan card">
-                    <div class="card-body">
-                        <h3 class="card-title">ESSENTIAL</h3>
-                        <p class="text-muted">For individuals needing a simple rental solution.</p>
-                        <ul class="list-unstyled">
-                            <li>✔ Access to economy & standard cars</li>
-                            <li>✔ 1000 miles/month included</li>
-                            <li>✔ Basic insurance coverage</li>
-                            <li>✔ 24/7 customer support</li>
-                        </ul>
-                        <p class="price-monthly">$29.50</p>
-                        <p class="price-yearly d-none">$350.70</p>
-                        <button class="btn btn-dark w-100 choose-plan-btn" 
-                            data-plan="ESSENTIAL" data-monthly="29.50" data-yearly="350.70">
-                            CHOOSE PLAN
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recommended Plan -->
-            <div class="col-md-4">
-                <div class="plan card recommended">
-                    <div class="card-body">
-                        <h3 class="card-title text-success">RECOMMENDED</h3>
-                        <p class="text-muted">Best for frequent travelers needing flexibility.</p>
-                        <ul class="list-unstyled">
-                            <li>✔ Access to all vehicle categories</li>
-                            <li>✔ Unlimited mileage</li>
-                            <li>✔ Comprehensive insurance included</li>
-                            <li>✔ Priority customer support</li>
-                            <li>✔ Free car replacement in case of issues</li>
-                        </ul>
-                        <p class="price-monthly">$44.40</p>
-                        <p class="price-yearly d-none">$530.60</p>
-                        <button class="btn btn-success w-100 choose-plan-btn" 
-                            data-plan="RECOMMENDED" data-monthly="44.40" data-yearly="530.60">
-                            CHOOSE PLAN
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pro Plan -->
-            <div class="col-md-4">
-                <div class="plan card">
-                    <div class="card-body">
-                        <h3 class="card-title">PRO</h3>
-                        <p class="text-muted">For business users and luxury travelers.</p>
-                        <ul class="list-unstyled">
-                            <li>✔ VIP access to luxury & sports cars</li>
-                            <li>✔ Personal chauffeur service available</li>
-                            <li>✔ Unlimited mileage & roadside assistance</li>
-                            <li>✔ Premium insurance with zero deductible</li>
-                            <li>✔ Complimentary airport pickup & drop-off</li>
-                        </ul>
-                        <p class="price-monthly">$70.50</p>
-                        <p class="price-yearly d-none">$840.30</p>
-                        <button class="btn btn-dark w-100 choose-plan-btn" 
-                            data-plan="PRO" data-monthly="70.50" data-yearly="840.30">
-                            CHOOSE PLAN
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- Subscription Modal -->
+<div class="modal fade" id="subscriptionModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title">Confirm Subscription</h5>
+      <button class="btn-close" data-bs-dismiss="modal"></button>
     </div>
+    <div class="modal-body">
+      <p>You're subscribing to: <strong id="modalPlanName"></strong></p>
+      <input type="text" id="cardNumber" class="form-control mb-2" placeholder="Card number (16 digits)" />
+      <input type="text" id="expiryDate" class="form-control mb-2" placeholder="Expiry MM/YY" />
+      <input type="text" id="cvc" class="form-control mb-2" placeholder="CVC (3 digits)" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      <button class="btn btn-success" id="confirmSubscription">Confirm</button>
+    </div>
+  </div></div>
+</div>
 </section>
+
+<script>
+  if (typeof selectedBilling === 'undefined') {
+    var selectedBilling = 'monthly';
+  }
+
+  function initPricingToggle() {
+    const toggle = document.getElementById("togglePlan");
+    if (!toggle) return;
+
+    toggle.addEventListener("change", function () {
+      selectedBilling = this.checked ? "yearly" : "monthly";
+      updateDisplayedPrices();
+    });
+
+    loadPlans();
+  }
+
+  var cachedPlans = [];
+
+function loadPlans() {
+  const token = localStorage.getItem("user_token");
+  if (!token) {
+    document.getElementById("pricingCards").innerHTML = `
+      <div class="col-12 text-center">
+        <p class="text-danger fw-bold">You must be logged in to view subscription plans.</p>
+      </div>`;
+    return;
+  }
+
+  RestClient.get("subscriptions/available", function (plans) {
+    cachedPlans = plans;
+    const container = document.getElementById("pricingCards");
+    container.innerHTML = "";
+
+    const currentUserId = Utils.parseJwt(token)?.user?.id;
+
+    const templatePlans = plans.filter(p => p.is_template == 1);
+    const userSubscription = plans.find(p => p.user_id == currentUserId && p.is_template == 0);
+
+    templatePlans.forEach(plan => {
+      const isThisSubscribed = userSubscription && userSubscription.plan === plan.plan;
+      const isOtherPlan = userSubscription && userSubscription.plan !== plan.plan;
+
+      const price = selectedBilling === "yearly"
+        ? (parseFloat(plan.price) * 11).toFixed(2)
+        : parseFloat(plan.price).toFixed(2);
+
+      let cancelText = '';
+      if (isThisSubscribed) {
+        cancelText = userSubscription.billing === "yearly"
+          ? "Cancel available in 300 days"
+          : "Cancel available in 25 days";
+      }
+
+      const formattedDescription = plan.description.replace(/\n/g, "<br>");
+
+      container.innerHTML += `
+        <div class="col-md-4 mb-4">
+          <div class="card h-100 shadow-sm p-4" style="border-radius: 12px;">
+            <h5 class="text-center mb-3" style="font-size: 1.2rem; font-weight: bold; color: #005b96">
+              ${plan.plan}
+            </h5>
+            <p class="text-muted text-center mb-3" style="font-size: 0.9rem; line-height: 1.4;">
+              ${formattedDescription}
+            </p>
+            <p class="text-center mb-4 price-text" style="font-size: 1rem;" data-plan="${plan.plan}">
+              <strong>$${price}</strong> / ${selectedBilling}
+            </p>
+            <button 
+              class="btn ${isThisSubscribed ? 'btn-warning' : 'btn-dark'} w-100 choose-plan-btn"
+              ${isThisSubscribed || isOtherPlan ? 'disabled' : ''}
+              data-id="${plan.id}" 
+              data-plan="${plan.plan}" 
+              data-price="${price}" 
+              data-billing="${selectedBilling}">
+              ${isThisSubscribed ? cancelText : 'CHOOSE PLAN'}
+            </button>
+          </div>
+        </div>`;
+    });
+
+    document.querySelectorAll(".choose-plan-btn:not([disabled])").forEach(btn => {
+      btn.addEventListener("click", function () {
+        const planName = this.dataset.plan;
+        const planPrice = this.dataset.price;
+        const billing = this.dataset.billing;
+        const planId = this.dataset.id;
+
+        document.getElementById("modalPlanName").innerText = planName;
+        document.getElementById("confirmSubscription").dataset.planId = planId;
+        document.getElementById("confirmSubscription").dataset.price = planPrice;
+        document.getElementById("confirmSubscription").dataset.plan = planName;
+        document.getElementById("confirmSubscription").dataset.billing = billing;
+
+        new bootstrap.Modal(document.getElementById("subscriptionModal")).show();
+      });
+    });
+  });
+}
+
+
+
+  function updateDisplayedPrices() {
+    const currentUserId = Utils.parseJwt(localStorage.getItem("user_token"))?.user?.id;
+    const userSubscription = cachedPlans.find(p => p.user_id == currentUserId && p.is_template == 0);
+
+    const priceTexts = document.querySelectorAll(".price-text");
+    priceTexts.forEach((el, i) => {
+      const planName = el.dataset.plan;
+      const plan = cachedPlans.find(p => p.plan === planName && p.is_template == 1);
+      if (!plan) return;
+
+      const newPrice = selectedBilling === "yearly"
+        ? (parseFloat(plan.price) * 11).toFixed(2)
+        : parseFloat(plan.price).toFixed(2);
+
+      el.innerHTML = `<strong>$${newPrice}</strong> / ${selectedBilling}`;
+
+      // Update the button state & text
+      const btn = el.parentElement.querySelector("button.choose-plan-btn");
+      if (userSubscription && userSubscription.plan === planName) {
+        btn.innerText = selectedBilling === "yearly"
+          ? "Cancel available in 30 days"
+          : "Cancel available in 25 days";
+      }
+
+      btn.dataset.price = newPrice;
+      btn.dataset.billing = selectedBilling;
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    initPricingToggle();
+  });
+
+document.getElementById("confirmSubscription").addEventListener("click", function () {
+  const plan = this.dataset.plan;
+  const price = this.dataset.price;
+  const billing = this.dataset.billing;
+
+  const today = new Date();
+  const startDate = today.toISOString().split("T")[0];
+
+  let endDate;
+  let cancelText;
+  if (billing === "yearly") {
+    const oneYearLater = new Date();
+    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+    endDate = oneYearLater.toISOString().split("T")[0];
+    cancelText = "Cancel available in 300 days";
+  } else {
+    const oneMonthLater = new Date();
+    oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+    endDate = oneMonthLater.toISOString().split("T")[0];
+    cancelText = "Cancel available in 25 days";
+  }
+
+  const sub = {
+    plan: plan,
+    price: price,
+    description: `Subscribed to ${plan}`,
+    start_date: startDate,
+    end_date: endDate
+  };
+
+  RestClient.post("subscriptions/subscribe", sub, function () {
+    toastr.success("Subscription successful!");
+    bootstrap.Modal.getInstance(document.getElementById("subscriptionModal")).hide();
+
+    // ✅ Zaključaj SVE dugmiće
+    document.querySelectorAll(".choose-plan-btn").forEach(btn => {
+      btn.setAttribute("disabled", true);
+      btn.classList.remove("btn-dark", "btn-warning");
+    });
+
+    // ✅ Pronađi aktivni plan i stilizuj ga
+    const activeBtn = [...document.querySelectorAll(".choose-plan-btn")].find(
+      btn => btn.dataset.plan === plan
+    );
+
+    if (activeBtn) {
+      activeBtn.classList.remove("btn-dark");
+      activeBtn.classList.add("btn-warning");
+      activeBtn.innerText = cancelText;
+      activeBtn.setAttribute("disabled", true); // ✅ I OVAJ JE DISABLED
+    }
+  });
+});
+
+
+</script>
