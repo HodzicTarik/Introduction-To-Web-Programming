@@ -1,301 +1,272 @@
-$(document).ready(function () {
-    let subscriptions = [];
-    let cars = [];
-    let faqs = [];
+// ✅ admin.js - SPA kompatibilan admin panel sa token validacijom + debug logovi
 
-    // Globalne varijable za brisanje
-    let currentDeleteType = null; // "subscription", "car", ili "faq"
-    let currentDeleteId = null; // ID stavke koja se briše
+if (typeof window.currentDeleteType === "undefined") {
+  window.currentDeleteType = null;
+  window.currentDeleteId = null;
+}
 
-    // Učitaj sve podatke prilikom učitavanja stranice
-    fetchSubscriptions();
+function initAdmin() {
+  console.log("✅ Admin SPA section loaded");
+
+  const token = localStorage.getItem("user_token");
+
+  if (!token || token === "undefined") {
+    toastr.error("⛔ Morate biti prijavljeni.");
+    window.location.href = "index.html";
+    return;
+  }
+
+  const user = Utils.parseJwt(token)?.user;
+
+  if (!user || user.role !== Constants.ADMIN_ROLE) {
+    toastr.error("⛔ Pristup dozvoljen samo administratorima.");
+    window.location.href = "index.html";
+    return;
+  }
+
+  fetchCars();
+  fetchSubscriptions();
+}
+
+// ======================== CARS ========================
+function fetchCars() {
+  RestClient.get("api/cars", function (data) {
+    if (!Array.isArray(data)) {
+      console.error("❌ fetchCars: expected array, got:", data);
+      toastr.error("Neuspješno učitavanje auta.");
+      return;
+    }
+
+    let table = "";
+    data.forEach(car => {
+      table += `
+        <tr>
+          <td>${car.id}</td>
+          <td><img src="${car.image}" width="50"></td>
+          <td>${car.brand} ${car.model}</td>
+          <td>${car.year}</td>
+          <td>$${car.price_per_day}</td>
+          <td>${car.availability === 1 ? "Yes" : "No"}</td>
+          <td>
+            <button class="btn btn-warning btn-sm" onclick="editCar(${car.id})">Change</button>
+            <button class="btn btn-danger btn-sm" onclick="confirmDelete('car', ${car.id})">Delete</button>
+          </td>
+        </tr>`;
+    });
+    $("#carTable").html(table);
+  });
+}
+
+function addCar() {
+  const car = {
+    brand: $("#carBrand").val(),
+    model: $("#modelTest123").val(),
+    year: $("#carYear").val(),
+    price_per_day: $("#carPrice").val(),
+    availability: 1,
+    image: $("#carImage").val(),
+    is_special: $("#carIsSpecial").is(":checked") ? 1 : 0,
+    description: $("#carDescription").val()
+  };
+
+  RestClient.post("api/cars", car, function () {
+    toastr.success("Car added");
     fetchCars();
-    fetchFaqs();
+    $("#addCarModal").modal("hide");
+  });
+}
 
-    // Funkcija za učitavanje pretplata iz subscription.html
-    function fetchSubscriptions() {
-        $.get("subscription.html")
-            .done(function (data) {
-                let parsedHtml = $(data);
-                parsedHtml.find(".plan").each(function (index) {
-                    let name = $(this).find(".card-title").text().trim() || "Unknown";
-                    let monthly = $(this).find(".price-monthly").text().trim() || "N/A";
-                    let yearly = $(this).find(".price-yearly").text().trim() || "N/A";
+function editCar(id) {
+  RestClient.get(`api/cars/${id}`, function (car) {
+    $("#editCarId").val(car.id);
+    $("#editCarBrand").val(car.brand);
+    $("#editCarModel").val(car.model);
+    $("#editCarYear").val(car.year);
+    $("#editCarPrice").val(car.price_per_day);
+    $("#editCarImage").val(car.image);
+    $("#editCarAvailability").val(car.availability);
+    $("#editCarIsSpecial").prop("checked", car.is_special === 1);
+    $("#editCarDescription").val(car.description || "");
+    $("#editCarModal").modal("show");
+  });
+}
 
-                    subscriptions.push({
-                        id: index + 1,
-                        name: name,
-                        monthly: monthly,
-                        yearly: yearly
-                    });
-                });
-                loadSubscriptionTable();
-            })
-            .fail(function () {
-                console.error("Error loading subscription.html");
-            });
+function saveCarChanges() {
+  const id = $("#editCarId").val();
+  const car = {
+    brand: $("#editCarBrand").val(),
+    model: $("#editCarModel").val(),
+    year: $("#editCarYear").val(),
+    price_per_day: $("#editCarPrice").val(),
+    image: $("#editCarImage").val(),
+    availability: $("#editCarAvailability").val(),
+    is_special: $("#editCarIsSpecial").is(":checked") ? 1 : 0,
+    description: $("#editCarDescription").val()
+  };
+  RestClient.put(`api/cars/${id}`, car, function () {
+    toastr.success("Car updated");
+    fetchCars();
+    $("#editCarModal").modal("hide");
+  });
+}
+
+
+// ======================== SUBSCRIPTIONS ========================
+function fetchSubscriptions() {
+  RestClient.get("api/subscriptions", function (data) {
+    if (!Array.isArray(data)) {
+      console.error("❌ fetchSubscriptions: expected array, got:", data);
+      toastr.error("Neuspješno učitavanje pretplata.");
+      return;
     }
 
-    // Funkcija za učitavanje automobila iz cars.html
-    function fetchCars() {
-        $.get("cars.html")
-            .done(function (data) {
-                let parsedHtml = $(data);
-                parsedHtml.find(".car-card").each(function (index) {
-                    let img = $(this).find("img").attr("src") || "";
-                    let name = $(this).find("h4").text().trim() || "Unknown";
-                    let details = $(this).find("p").first().text().split(" • ");
-                    let price = $(this).find(".price strong").text().trim() || "N/A";
-
-                    cars.push({
-                        id: index + 1,
-                        image: img,
-                        name: name,
-                        type: details[0] || "N/A",
-                        passengers: details[2] ? parseInt(details[2]) : 0,
-                        fuel: details[3] || "Unknown",
-                        price: price
-                    });
-                });
-                loadCarTable();
-            })
-            .fail(function () {
-                console.error("Error loading cars.html");
-            });
-    }
-
-    // Funkcija za učitavanje FAQ pitanja iz faq.html
-    function fetchFaqs() {
-        $.get("faq.html")
-            .done(function (data) {
-                let parsedHtml = $(data);
-                parsedHtml.find(".faq-item").each(function (index) {
-                    let question = $(this).find(".faq-question").text().trim() || "No question";
-                    let answer = $(this).find(".faq-answer").text().trim() || "No answer";
-
-                    faqs.push({
-                        id: index + 1,
-                        question: question,
-                        answer: answer
-                    });
-                });
-                loadFaqTable();
-            })
-            .fail(function () {
-                console.error("Error loading faq.html");
-            });
-    }
-
-    // Funkcija za prikaz pretplata u tabeli
-    function loadSubscriptionTable() {
-        let subscriptionTable = $("#subscriptionTable");
-        subscriptionTable.empty();
-
-        subscriptions.forEach(sub => {
-            subscriptionTable.append(`
-                <tr>
-                    <td>${sub.id}</td>
-                    <td>${sub.name}</td>
-                    <td>${sub.monthly}</td>
-                    <td>${sub.yearly}</td>
-                    <td>
-                        <button class="btn btn-warning btn-sm edit-subscription" data-id="${sub.id}">Change</button>
-                        <button class="btn btn-danger btn-sm delete-subscription" data-id="${sub.id}">Delete</button>
-                    </td>
-                </tr>
-            `);
-        });
-    }
-
-    // Funkcija za prikaz automobila u tabeli
-    function loadCarTable() {
-        let carTable = $("#carTable");
-        carTable.empty();
-
-        cars.forEach(car => {
-            carTable.append(`
-                <tr>
-                    <td>${car.id}</td>
-                    <td><img src="${car.image}" width="50"></td>
-                    <td>${car.name}</td>
-                    <td>${car.type}</td>
-                    <td>${car.passengers}</td>
-                    <td>${car.fuel}</td>
-                    <td>${car.price}</td>
-                    <td>
-                        <button class="btn btn-warning btn-sm edit-car" data-id="${car.id}">Change</button>
-                        <button class="btn btn-danger btn-sm delete-car" data-id="${car.id}">Delete</button>
-                    </td>
-                </tr>
-            `);
-        });
-    }
-
-    // Funkcija za prikaz FAQ pitanja u tabeli
-    function loadFaqTable() {
-        let faqTable = $("#faqTable");
-        faqTable.empty();
-
-        faqs.forEach(faq => {
-            faqTable.append(`
-                <tr>
-                    <td>${faq.id}</td>
-                    <td>${faq.question}</td>
-                    <td>${faq.answer}</td>
-                    <td>
-                        <button class="btn btn-warning btn-sm edit-faq" data-id="${faq.id}">Change</button>
-                        <button class="btn btn-danger btn-sm delete-faq" data-id="${faq.id}">Delete</button>
-                    </td>
-                </tr>
-            `);
-        });
-    }
-
-    // Event delegacija za pretplate
-    $("#subscriptionTable").on("click", ".edit-subscription", function () {
-        let id = $(this).data("id");
-        editSubscription(id);
-    });
-
-    $("#subscriptionTable").on("click", ".delete-subscription", function () {
-        let id = $(this).data("id");
-        showDeleteConfirmationModal("subscription", id);
-    });
-
-    // Event delegacija za automobile
-    $("#carTable").on("click", ".edit-car", function () {
-        let id = $(this).data("id");
-        editCar(id);
-    });
-
-    $("#carTable").on("click", ".delete-car", function () {
-        let id = $(this).data("id");
-        showDeleteConfirmationModal("car", id);
-    });
-
-    // Event delegacija za FAQ
-    $("#faqTable").on("click", ".edit-faq", function () {
-        let id = $(this).data("id");
-        editFaq(id);
-    });
-
-    $("#faqTable").on("click", ".delete-faq", function () {
-        let id = $(this).data("id");
-        showDeleteConfirmationModal("faq", id);
-    });
-
-    // Funkcija za prikaz modala za potvrdu brisanja
-    function showDeleteConfirmationModal(type, id) {
-        currentDeleteType = type;
-        currentDeleteId = id;
-        $("#deleteConfirmationModal").modal("show");
-    }
-
-    // Event za potvrdu brisanja
-    $("#confirmDeleteButton").on("click", function () {
-        if (currentDeleteType === "subscription") {
-            subscriptions = subscriptions.filter(sub => sub.id !== currentDeleteId);
-            loadSubscriptionTable();
-        } else if (currentDeleteType === "car") {
-            cars = cars.filter(car => car.id !== currentDeleteId);
-            loadCarTable();
-        } else if (currentDeleteType === "faq") {
-            faqs = faqs.filter(faq => faq.id !== currentDeleteId);
-            loadFaqTable();
-        }
-        $("#deleteConfirmationModal").modal("hide");
-    });
-
-    // Funkcija za editiranje pretplate
-    function editSubscription(id) {
-        let sub = subscriptions.find(sub => sub.id === id);
-        if (sub) {
-            $("#editSubId").val(sub.id);
-            $("#editSubName").val(sub.name);
-            $("#editSubPriceM").val(sub.monthly);
-            $("#editSubPriceY").val(sub.yearly);
-            $("#editSubscriptionModal").modal("show");
-        }
-    }
-
-    // Funkcija za čuvanje promjena pretplate
-    function saveSubscriptionChanges() {
-        let id = $("#editSubId").val();
-        let name = $("#editSubName").val();
-        let monthly = $("#editSubPriceM").val();
-        let yearly = $("#editSubPriceY").val();
-
-        let sub = subscriptions.find(sub => sub.id == id);
-        if (sub) {
-            sub.name = name;
-            sub.monthly = monthly;
-            sub.yearly = yearly;
-            loadSubscriptionTable();
-            $("#editSubscriptionModal").modal("hide");
-        }
-    }
-
-    // Funkcija za editiranje automobila
-    function editCar(id) {
-        let car = cars.find(car => car.id === id);
-        if (car) {
-            $("#editCarId").val(car.id);
-            $("#editCarName").val(car.name);
-            $("#editCarType").val(car.type);
-            $("#editCarPassengers").val(car.passengers);
-            $("#editCarFuel").val(car.fuel);
-            $("#editCarPrice").val(car.price);
-            $("#editCarImage").val(car.image);
-            $("#editCarModal").modal("show");
-        }
-    }
-
-    // Funkcija za čuvanje promjena automobila
-    function saveCarChanges() {
-        let id = $("#editCarId").val();
-        let name = $("#editCarName").val();
-        let type = $("#editCarType").val();
-        let passengers = $("#editCarPassengers").val();
-        let fuel = $("#editCarFuel").val();
-        let price = $("#editCarPrice").val();
-        let image = $("#editCarImage").val();
-
-        let car = cars.find(car => car.id == id);
-        if (car) {
-            car.name = name;
-            car.type = type;
-            car.passengers = passengers;
-            car.fuel = fuel;
-            car.price = price;
-            car.image = image;
-            loadCarTable();
-            $("#editCarModal").modal("hide");
-        }
-    }
-
-    // Funkcija za editiranje FAQ pitanja
-    function editFaq(id) {
-        let faq = faqs.find(faq => faq.id === id);
-        if (faq) {
-            $("#editFaqId").val(faq.id);
-            $("#editFaqQuestion").val(faq.question);
-            $("#editFaqAnswer").val(faq.answer);
-            $("#editFaqModal").modal("show");
-        }
-    }
-
-    // Funkcija za čuvanje promjena FAQ pitanja
-    function saveFaqChanges() {
-        let id = $("#editFaqId").val();
-        let question = $("#editFaqQuestion").val();
-        let answer = $("#editFaqAnswer").val();
-
-        let faq = faqs.find(faq => faq.id == id);
-        if (faq) {
-            faq.question = question;
-            faq.answer = answer;
-            loadFaqTable();
-            $("#editFaqModal").modal("hide");
-        }
-    }
+    let table = "";
+    data.forEach(sub => {
+  table += `
+    <tr>
+      <td>${sub.id}</td>
+      <td>${sub.plan}</td>
+      <td>$${sub.price}</td>
+      <td>${sub.description || '-'}</td>
+      <td>
+        <button class="btn btn-warning btn-sm" onclick="editSubscription(${sub.id})">Change</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDelete('subscription', ${sub.id})">Delete</button>
+      </td>
+    </tr>`;
 });
+
+    $("#subscriptionTable").html(table);
+
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  });
+}
+
+function addSubscription() {
+  const sub = {
+    plan: $("#subName").val(),
+    price: $("#subPriceM").val(),
+    description: $("#subDescription").val(),
+    user_id: 1
+  };
+  RestClient.post("api/subscriptions", sub, function () {
+    toastr.success("Subscription added");
+    fetchSubscriptions();
+
+    const modal = bootstrap.Modal.getInstance(document.getElementById("addSubscriptionModal"));
+    if (modal) modal.hide();
+
+    setTimeout(() => {
+      document.body.classList.remove("modal-open");
+      document.body.style.overflow = "auto";
+      document.body.style.paddingRight = "0";
+      document.querySelectorAll(".modal-backdrop").forEach(el => el.remove());
+    }, 300);
+  });
+}
+
+
+
+function editSubscription(id) {
+  RestClient.get(`api/subscriptions/${id}`, function (sub) {
+    $("#editSubId").val(sub.id);
+    $("#editSubName").val(sub.plan);
+    $("#editSubPriceM").val(sub.price);
+    $("#editSubDescription").val(sub.description);
+    $("#editSubscriptionModal").modal("show");
+  });
+}
+
+function saveSubscriptionChanges() {
+  const id = $("#editSubId").val();
+  const sub = {
+    plan: $("#editSubName").val(),
+    price: $("#editSubPriceM").val(),
+    description: $("#editSubDescription").val()
+  };
+  RestClient.put(`api/subscriptions/${id}`, sub, function () {
+    toastr.success("Subscription updated");
+    fetchSubscriptions();
+    $("#editSubscriptionModal").modal("hide");
+  });
+}
+
+// ======================== DELETE ========================
+function confirmDelete(type, id) {
+  currentDeleteType = type;
+  currentDeleteId = id;
+  $("#deleteConfirmationModal").modal("show");
+}
+
+$(document).on("click", "#confirmDeleteButton", function () {
+  let url = "";
+  if (currentDeleteType === "car") url = `api/cars/${currentDeleteId}`;
+  if (currentDeleteType === "subscription") url = `api/subscriptions/${currentDeleteId}`;
+
+  RestClient.delete(url, null, function () {
+    toastr.success("Deleted successfully");
+    if (currentDeleteType === "car") fetchCars();
+    if (currentDeleteType === "subscription") fetchSubscriptions();
+    $("#deleteConfirmationModal").modal("hide");
+  });
+});
+
+$(document).on('hidden.bs.modal', function () {
+  document.body.style.overflow = 'auto';
+  document.body.classList.remove('modal-open');
+  $('.modal-backdrop').remove();
+});
+
+// ======================== SPECIAL CARS ========================
+
+function addSpecialCar() {
+  const car = {
+    brand: $("#specialCarBrand").val(),
+    model: $("#specialCarModel").val(),
+    year: $("#specialCarYear").val(),
+    price_per_day: $("#specialCarPrice").val(),
+    availability: 1,
+    image: $("#specialCarImage").val(),
+    is_special: 1,
+    description: $("#specialCarDescription").val()
+  };
+
+  RestClient.post("api/cars", car, function () {
+    toastr.success("Special Car added");
+    fetchSpecialCars();
+    $("#addSpecialCarModal").modal("hide");
+  });
+}
+
+function editSpecialCar(id) {
+  RestClient.get(`api/cars/${id}`, function (car) {
+    // Reuse existing modal if needed, or implement another
+    $("#editCarId").val(car.id);
+    $("#editCarBrand").val(car.brand);
+    $("#editCarModel").val(car.model);
+    $("#editCarYear").val(car.year);
+    $("#editCarPrice").val(car.price_per_day);
+    $("#editCarImage").val(car.image);
+    $("#editCarAvailability").val(car.availability);
+    $("#editCarModal").modal("show");
+  });
+}
+
+// Dodavanje podrške za brisanje special auta
+$(document).on("click", "#confirmDeleteButton", function () {
+  let url = "";
+  if (currentDeleteType === "car") url = `api/cars/${currentDeleteId}`;
+  if (currentDeleteType === "subscription") url = `api/subscriptions/${currentDeleteId}`;
+  if (currentDeleteType === "special") url = `api/cars/${currentDeleteId}`;
+
+  RestClient.delete(url, null, function () {
+    toastr.success("Deleted successfully");
+    if (currentDeleteType === "car") fetchCars();
+    if (currentDeleteType === "subscription") fetchSubscriptions();
+    if (currentDeleteType === "special") fetchSpecialCars();
+    $("#deleteConfirmationModal").modal("hide");
+  });
+});
+

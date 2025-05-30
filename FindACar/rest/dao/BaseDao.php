@@ -1,79 +1,62 @@
 <?php
-require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../Database.php';
 
 class BaseDao {
+    protected $conn;
     protected $table;
-    protected $connection;
 
     public function __construct($table) {
+        $this->conn = Database::connect();
         $this->table = $table;
-        $this->connection = getDatabaseConnection();
-
-        // Safety check: verify table exists
-        $tables = $this->connection->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
-        if (!in_array($this->table, $tables)) {
-            die(json_encode(['error' => "Tabela '{$this->table}' ne postoji u bazi. Dostupne su: " . implode(', ', $tables)]));
-        }
     }
 
     public function getAll() {
-        try {
-            $stmt = $this->connection->query("SELECT * FROM {$this->table}");
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            return ['error' => $e->getMessage()];
-        }
+        $stmt = $this->conn->prepare("SELECT * FROM {$this->table}");
+        $stmt->execute();
+        return $stmt->fetchAll();
     }
 
     public function getById($id) {
-        try {
-            $stmt = $this->connection->prepare("SELECT * FROM {$this->table} WHERE id = :id");
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            $stmt->execute();
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result ?: ['error' => "Record with ID $id not found"];
-        } catch (PDOException $e) {
-            return ['error' => $e->getMessage()];
-        }
+        $stmt = $this->conn->prepare("SELECT * FROM {$this->table} WHERE id = :id");
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetch();
     }
 
     public function insert($data) {
-        if (empty($data)) return ['error' => 'Insert data is empty'];
-        try {
-            $columns = implode(", ", array_keys($data));
-            $placeholders = ":" . implode(", :", array_keys($data));
-            $sql = "INSERT INTO {$this->table} ($columns) VALUES ($placeholders)";
-            $stmt = $this->connection->prepare($sql);
-            $stmt->execute($data);
-            return ['id' => $this->connection->lastInsertId()];
-        } catch (PDOException $e) {
-            return ['error' => $e->getMessage()];
-        }
+        $keys = implode(',', array_keys($data));
+        $placeholders = ':' . implode(',:', array_keys($data));
+        $stmt = $this->conn->prepare("INSERT INTO {$this->table} ({$keys}) VALUES ({$placeholders})");
+        $stmt->execute($data);
+        $data['id'] = $this->conn->lastInsertId();
+        return $data;
     }
 
     public function update($id, $data) {
-        if (empty($data)) return ['error' => 'Update data is empty'];
-        try {
-            $fields = implode(", ", array_map(fn($key) => "$key = :$key", array_keys($data)));
-            $sql = "UPDATE {$this->table} SET $fields WHERE id = :id";
-            $stmt = $this->connection->prepare($sql);
-            $data['id'] = $id;
-            $stmt->execute($data);
-            return ['updated' => $stmt->rowCount() > 0];
-        } catch (PDOException $e) {
-            return ['error' => $e->getMessage()];
+        $fields = "";
+        foreach ($data as $key => $value) {
+            $fields .= "{$key} = :{$key}, ";
         }
+        $fields = rtrim($fields, ', ');
+        $data['id'] = $id;
+        $stmt = $this->conn->prepare("UPDATE {$this->table} SET {$fields} WHERE id = :id");
+        $stmt->execute($data);
+        return $data;
     }
 
     public function delete($id) {
-        try {
-            $stmt = $this->connection->prepare("DELETE FROM {$this->table} WHERE id = :id");
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            $stmt->execute();
-            return ['deleted' => $stmt->rowCount() > 0];
-        } catch (PDOException $e) {
-            return ['error' => $e->getMessage()];
-        }
+        $stmt = $this->conn->prepare("DELETE FROM {$this->table} WHERE id = :id");
+        $stmt->execute(['id' => $id]);
+        return ['status' => 'success'];
+    }
+
+    public function query($query, $params = []) {
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    public function query_unique($query, $params = []) {
+        $results = $this->query($query, $params);
+        return count($results) > 0 ? $results[0] : null;
     }
 }
-?>

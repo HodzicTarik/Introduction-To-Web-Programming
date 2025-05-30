@@ -14,32 +14,47 @@
     <script src="js/jquery.spapp.min.js"></script>
     <script src="js/spa.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Toastr CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+
 </head>
 <body>
 
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
-        <a class="navbar-brand" href="#home">FindYourCar</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link" href="#home">Home</a></li>
-                <li class="nav-item"><a class="nav-link" href="#cars">Cars</a></li>
-                <li class="nav-item"><a class="nav-link" href="#subscription">Pricing</a></li>
-                <li class="nav-item"><a class="nav-link" href="#faq">FAQ</a></li>
-                <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
-                <!-- Dugmad za Login i Register -->
-                <li class="nav-item">
-                    <button class="btn btn-outline-light ms-2" onclick="openAuthModal('login')">Login</button>
-                    <button class="btn btn-primary ms-2" onclick="openAuthModal('register')">Register</button>
-                </li>
-            </ul>
-        </div>
+  <div class="container">
+    <a class="navbar-brand" href="#home">FindYourCar</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto" id="navbar">
+        <li class="nav-item"><a class="nav-link" href="#home" onclick="sessionStorage.setItem('refresh_home', 'true')">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="#cars">Cars</a></li>
+        <li class="nav-item"><a class="nav-link" href="#subscription">Pricing</a></li>
+        <li class="nav-item"><a class="nav-link" href="#faq">FAQ</a></li>
+        <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
+
+        <!-- Admin Dashboard (dynamically shown if user is admin) -->
+        <li class="nav-item d-none" id="admin-link">
+          <a class="nav-link text-warning" href="#admin">Admin Dashboard</a>
+        </li>
+
+        <!-- Logout button (shown when user is logged in) -->
+        <li class="nav-item d-none" id="logout-button">
+          <button class="btn btn-danger ms-2" onclick="UserService.logout()">Logout</button>
+        </li>
+
+        <!-- Login/Register buttons (shown when user is not logged in) -->
+        <li class="nav-item" id="login-buttons">
+          <button class="btn btn-outline-light ms-2" onclick="openAuthModal('login')">Login</button>
+          <button class="btn btn-primary ms-2" onclick="openAuthModal('register')">Register</button>
+        </li>
+      </ul>
     </div>
+  </div>
 </nav>
+
 
 <main id="spapp">
     <!-- Home Page -->
@@ -50,80 +65,79 @@
             <div class="container text-center text-white hero-content">
                 <h1 class="fw-bold display-3">Find the Perfect Car for Rent</h1>
                 <p class="lead mb-4">Quick, easy, and reliable. Your car is waiting for you. Whether it's for work or leisure, we have the right choice for you.</p>
-                <a href="#rent-a-car" class="btn btn-lg btn-primary shadow">RENT NOW</a>
+                <a href="#" class="btn btn-lg btn-primary shadow" onclick="scrollToSection('scrollme')">RENT NOW</a>
             </div>
         </header>
 
-    <!-- Car Reservation Section -->
-    <section class="reservation my-5 container" id="rent-a-car">
-        <h2 class="text-center mb-5">Rent A Car</h2>
-        <form class="row g-3 container">
-            <div class="col-md-4">
-                <label for="carModel" class="form-label">Choose model</label>
-                <select id="carmodel" class="form-select" onchange="updatePrice()">
-                    <option selected>Izaberi...</option>
-                    <option value="BMW">BMW</option>
-                    <option value="Audi">Audi</option>
-                    <option value="Mercedes">Mercedes</option>
-                    <option value="Volkswagen">Volkswagen</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label for="startDate" class="form-label">From</label>
-                <input type="date" id="startDate" class="form-control" onchange="updateTotal()">
-            </div>
-            <div class="col-md-4">
-                <label for="endDate" class="form-label">To</label>
-                <input type="date" id="endDate" class="form-control" onchange="updateTotal()">
-            </div>
-            <div class="col-md-4">
-                <label for="pricePerDay" class="form-label">Price per day</label>
-                <input type="text" id="pricePerDay" class="form-control" disabled>
-            </div>
-            <div class="col-md-4">
-                <label for="totalPrice" class="form-label">Total price</label>
-                <input type="text" id="totalprice_reservation" class="form-control" disabled>
-            </div>
-            <div class="col-12 text-center">
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#paymentModal" onclick="openModal()">Rezerviši</button>
-            </div>
-        </form>
-    </section>
+<!-- Car Reservation Section -->
+<section class="reservation my-5 container" id="scrollme">
+  <h2 class="text-center mb-5">Rent A Car</h2>
+  <form class="row g-3 container">
+    <div class="col-md-4">
+      <label for="carSelect" class="form-label">Choose model</label>
+      <select id="carSelect" class="form-select">
+        <option selected disabled>Izaberi...</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label for="startDate" class="form-label">From</label>
+      <input type="date" id="startDate" class="form-control" />
+    </div>
+    <div class="col-md-4">
+      <label for="endDate" class="form-label">To</label>
+      <input type="date" id="endDate" class="form-control" />
+    </div>
+    <div class="col-md-4">
+      <label for="pricePerDay" class="form-label">Price per day</label>
+      <input type="text" id="pricePerDay" class="form-control" disabled />
+    </div>
+    <div class="col-md-4">
+      <label for="totalprice_reservation" class="form-label">Total price</label>
+      <input type="text" id="totalprice_reservation" class="form-control" disabled />
+    </div>
+    <div class="col-12 text-center">
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#paymentModal">
+        RENT
+      </button>
+    </div>
+  </form>
+</section>
 
 <!-- Modal for Payment -->
 <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="paymentModalLabel">Reservation Confirmation</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p><strong>Car Brand:</strong> <span id="modalCarModel"></span></p>
-                <p><strong>Period:</strong> <span id="modalDates"></span></p>
-                <p><strong>Total Price:</strong> <span id="modalTotalPrice"></span></p>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="paymentModalLabel">Reservation Confirmation</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Car:</strong> <span id="modalCarModel"></span></p>
+        <p><strong>Period:</strong> <span id="modalDates"></span></p>
+        <p><strong>Total Price:</strong> <span id="modalTotalPrice"></span></p>
 
-                <form>
-                    <div class="mb-3">
-                        <label for="cardNumber" class="form-label">Card Number</label>
-                        <input type="text" class="form-control" id="cardNumber" placeholder="XXXX-XXXX-XXXX-XXXX" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="expiryDate" class="form-label">Expiration Date</label>
-                        <input type="text" class="form-control" id="expiryDate" required placeholder="XX/XX">
-                    </div>
-                    <div class="mb-3">
-                        <label for="cvv" class="form-label">CVV</label>
-                        <input type="text" class="form-control" id="cvv" placeholder="XXX" required>
-                    </div>
-                    <div class="mb-3">
-                        <button type="submit" class="btn btn-success w-100">Pay</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        <form id="paymentForm">
+          <div class="mb-3">
+            <label for="cardNumber" class="form-label">Card Number</label>
+            <input type="text" class="form-control" id="cardNumber" placeholder="XXXX-XXXX-XXXX-XXXX" required />
+          </div>
+          <div class="mb-3">
+            <label for="expiryDate" class="form-label">Expiration Date</label>
+            <input type="text" class="form-control" id="expiryDate" placeholder="MM/YY" required />
+          </div>
+          <div class="mb-3">
+            <label for="cvv" class="form-label">CVC</label>
+            <input type="text" class="form-control" id="cvv" placeholder="XXX" required />
+          </div>
+          <div class="mb-3">
+            <button type="submit" class="btn btn-success w-100">Pay</button>
+          </div>
+        </form>
+      </div>
     </div>
+  </div>
 </div>
+
 
 
 <!-- Modal za unos datuma -->
@@ -194,44 +208,49 @@
     <section id="subscription" data-load="subscription.html" style="display: none;"></section>
     <section id="faq" data-load="faq.html" style="display: none;"></section>
     <section id="contact" data-load="contact.html" style="display: none;"></section>
+    <section id="admin" data-load="admin.html" style="display: none;"></section>
 </main>
 
 <!-- Login/Register Modal -->
 <div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="authModalLabel">Login</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="authModalLabel">Login</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="authForm">
+          <div class="mb-3">
+            <label for="auth-email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="auth-email" name="email" required>
+          </div>
+          <div class="mb-3">
+            <label for="auth-password" class="form-label">Password</label>
+            <input type="password" class="form-control" id="auth-password" name="password" required>
+          </div>
+
+          <!-- Extra fields for registration -->
+          <div id="register-extra-fields" style="display: none;">
+            <div class="mb-3">
+              <label for="auth-name" class="form-label">Full Name</label>
+              <input type="text" class="form-control" id="auth-name" name="name">
             </div>
-            <div class="modal-body">
-                <form id="authForm">
-                    <div class="mb-3">
-                        <label for="auth-email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="auth-email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="auth-password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="auth-password" required>
-                    </div>
-                    <div id="register-extra-fields" style="display: none;">
-                        <div class="mb-3">
-                            <label for="auth-name" class="form-label">Full Name</label>
-                            <input type="text" class="form-control" id="auth-name">
-                        </div>
-                        <div class="mb-3">
-                            <label for="auth-confirm-password" class="form-label">Confirm Password</label>
-                            <input type="password" class="form-control" id="auth-confirm-password">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Submit</button>
-                </form>
-                <p class="text-center mt-3">
-                    <a href="#" id="toggleAuthMode" class="account-link">Don't have an account? Register</a>
-                </p>
+            <div class="mb-3">
+              <label for="auth-confirm-password" class="form-label">Confirm Password</label>
+              <input type="password" class="form-control" id="auth-confirm-password" name="confirm_password">
             </div>
-        </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100">Submit</button>
+        </form>
+
+        <p class="text-center mt-3">
+          <a href="#" id="toggleAuthMode" class="account-link">Don't have an account? Register</a>
+        </p>
+      </div>
     </div>
+  </div>
 </div>
 
 
@@ -354,7 +373,39 @@
 </footer>
 
 
+<!-- Bootstrap + jQuery-based UI -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Core routing & app script -->
 <script src="js/script.js"></script>
+
+<!-- Utils -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script src="js/utils/constants.js"></script>
+<script src="js/utils/rest-client.js"></script>
+<script src="js/utils/utils.js"></script>
+
+<!-- Services -->
+<script src="js/services/user-service.js"></script>
+<script src="js/services/reservation-service.js"></script>
+<script src="js/admin.js"></script>
+
+<!-- Init login/navigation -->
+<script>
+  $(document).ready(function() {
+    UserService.init(); // sets up navbar + login/logout
+  });
+</script>
+
+<script>
+function scrollToSection(id) {
+  const section = document.getElementById(id);
+  if (section) {
+    section.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+</script>
+
+
 </body>
 </html>
