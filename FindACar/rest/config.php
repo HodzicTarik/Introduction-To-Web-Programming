@@ -56,5 +56,5 @@ class Config
         // Preporučeno: barem 32 karaktera, random string
         return 'gF$#7SdfgJkL!28Asd@LpE91nM@#xZq9';
     }
-    */
+*/
 }
