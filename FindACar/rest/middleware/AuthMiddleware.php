@@ -4,6 +4,7 @@ use Firebase\JWT\Key;
 
 class AuthMiddleware {
 
+    // iz headera vadi token (npr. Authorization: Bearer xxx)
     private function extractToken() {
         $headers = getallheaders();
         
@@ -14,9 +15,10 @@ class AuthMiddleware {
         return str_replace("Bearer ", "", $headers["Authorization"]);
     }
 
+    // validira JWT token, postavlja korisnika u Flight kontekst
     public function verifyToken($token = null){
         if (!$token) {
-            $token = $this->extractToken(); // automatski uzmi iz headera ako nije proslijeđen
+            $token = $this->extractToken(); // automatski uzima token iz headera
         }
 
         try {
@@ -25,16 +27,17 @@ class AuthMiddleware {
             Flight::halt(401, "Invalid token: " . $e->getMessage());
         }
 
-        // Postavi dekodovanog korisnika u globalni Flight kontekst
+        // postavi korisnika u globalni Flight kontekst
         Flight::set('user', $decoded->user);
         Flight::set('jwt_token', $token);
 
-        // ✅ Loguj korisnika kad je token validan
+        // loguje uspješnu validaciju tokena
         error_log("✅ Token validan. Korisnik: " . json_encode($decoded->user));
 
         return true;
     }
 
+    // dozvoljava pristup samo korisnicima sa tačno određenom rolom
     public function authorizeRole($requiredRole) {
         $user = Flight::get('user');
 
@@ -48,6 +51,7 @@ class AuthMiddleware {
         }
     }
 
+    // dozvoljava pristup ako korisnik ima jednu od navedenih rola
     public function authorizeRoles($roles) {
         $user = Flight::get('user');
 
@@ -61,6 +65,7 @@ class AuthMiddleware {
         }
     }
 
+    // isto kao authorizeRoles, ali koristi strict provjeru i loguje info
     public function authorizeAnyRole($allowedRoles) {
         $user = Flight::get('user');
         error_log("🟡 authorizeAnyRole - USER: " . json_encode($user));

@@ -80,3 +80,9 @@ if (!isset($data['start_date']) || !isset($data['end_date'])) {
 Flight::json(Flight::subscription_service()->createSubscription($data));
 
 });
+
+Flight::route('GET /subscriptions/active', function () {
+    Flight::auth_middleware()->authorizeAnyRole(["user", "admin"]);
+    $user = Flight::get('user');
+    Flight::json(Flight::subscription_service()->getActiveSubscriptionForUser($user->id));
+});

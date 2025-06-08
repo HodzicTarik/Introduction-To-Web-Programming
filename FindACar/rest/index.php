@@ -1,16 +1,16 @@
 <?php
 require_once __DIR__ . '/../vendor/autoload.php';
 
-// 🛡️ CORS za frontend pristup
+// cors za frontend pristup
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authentication");
 
-// ✅ FLIGHTPHP dio
+// flightphp dio
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/Database.php';
 
-// 🔧 Servisi
+// servisi
 require_once __DIR__ . '/services/AuthService.php';
 require_once __DIR__ . '/services/Roles.php';
 require_once __DIR__ . '/services/UserService.php';
@@ -19,10 +19,10 @@ require_once __DIR__ . '/services/SubscriptionService.php';
 require_once __DIR__ . '/services/ReservationService.php';
 require_once __DIR__ . '/services/ContactFormService.php';
 
-// 🔐 Middleware
+// middleware
 require_once __DIR__ . '/middleware/AuthMiddleware.php';
 
-// 🔧 Registracija servisa
+// registracija servisa
 Flight::register('auth_service', "AuthService");
 Flight::register('auth_middleware', "AuthMiddleware");
 Flight::register('user_service', "UserService");
@@ -31,23 +31,22 @@ Flight::register('subscription_service', "SubscriptionService");
 Flight::register('reservation_service', "ReservationService");
 Flight::register('contact_form_service', "ContactFormService");
 
-// 🧱 Globalna JWT zaštita, osim za javne rute
+// globalna jwt zastita, osim za javne rute
 Flight::before('start', function(&$params, &$output){
     $public_paths = ['/auth/login', '/auth/register', '/cars/available'];
     $path = Flight::request()->url;
 
-    // Skip token validation for public paths
+    // preskoci token validaciju za javne putanje
     foreach ($public_paths as $public_path) {
         if (strpos($path, $public_path) === 0) return;
     }
 
-    // ✅ OPTIONS request (CORS preflight) – dozvoli odmah
     if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
         http_response_code(200);
         exit;
     }
 
-    // ✅ Robustno dohvaćanje Authorization headera
+    // dohvatanje authorization headera
     $headers = getallheaders();
     $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
 
@@ -55,7 +54,7 @@ Flight::before('start', function(&$params, &$output){
         Flight::halt(401, "Missing Authorization header");
     }
 
-    // Podrška za "Bearer <token>" format
+    // podrska za "bearer <token>" format
     $token = str_starts_with($authHeader, 'Bearer ') ? substr($authHeader, 7) : $authHeader;
 
     try {
@@ -65,9 +64,7 @@ Flight::before('start', function(&$params, &$output){
     }
 });
 
-
-
-// 📍 Rute (Flight-style)
+// 📍 rute
 require_once __DIR__ . '/routes/AuthRoutes.php';
 require_once __DIR__ . '/routes/userRoutes.php';
 require_once __DIR__ . '/routes/carRoutes.php';
@@ -75,12 +72,12 @@ require_once __DIR__ . '/routes/subscriptionRoutes.php';
 require_once __DIR__ . '/routes/reservationRoutes.php';
 require_once __DIR__ . '/routes/contactFormRoutes.php';
 
-// 📍 FlightPHP postavke
+// flightphp postavke
 Flight::set('flight.base_url', '');
 Flight::start();
 exit;
 
-// 🟦 Fallback za BaseDao (Milestone 1 & 2)
+// fallback za base dao (milestone 1 & 2)
 require_once 'dao/BaseDao.php';
 
 $entities = ['cars', 'users', 'reservations', 'subscriptions', 'contact_forms'];

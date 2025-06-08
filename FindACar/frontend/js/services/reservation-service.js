@@ -1,11 +1,13 @@
-// ✅ Dostupan globalno
+// globalna funkcija koja učitava dostupne automobile
 function loadAvailableCars() {
     const token = localStorage.getItem("user_token");
 
+    // provjera da li postoji select i da li je korisnik loginovan
     if ($("#carSelect").length && token) {
         RestClient.get("cars/available", function (cars) {
             let options = '<option selected disabled>Choose your car</option>';
             cars.forEach(car => {
+                // svaki auto se dodaje kao opcija u dropdown
                 options += `<option value="${car.id}" data-price="${car.price_per_day}" data-label="${car.brand} ${car.model}">
                     ${car.brand} ${car.model}
                 </option>`;
@@ -13,6 +15,7 @@ function loadAvailableCars() {
             $('#carSelect').html(options);
         });
     } else {
+        // ako korisnik nije loginovan dropdown je onemogucen
         $('#carSelect').html('<option selected disabled>You must be logged in</option>');
     }
 }
@@ -20,8 +23,9 @@ function loadAvailableCars() {
 $(document).ready(function () {
     const token = localStorage.getItem("user_token");
 
-    loadAvailableCars(); // ✅ poziv odmah
+    loadAvailableCars(); // učitavanje odmah po pokretanju
 
+    // kada se promijeni izbor auta iz dropdowna
     $('#carSelect').on('change', function () {
         const selected = $('#carSelect option:selected');
         const price = selected.data('price');
@@ -31,6 +35,7 @@ $(document).ready(function () {
         updateReservationTotal();
     });
 
+    // svaki put kad se promijene datumi izračunava se nova cijena
     $('#startDate, #endDate').on('change', updateReservationTotal);
 
     function updateReservationTotal() {
@@ -39,18 +44,21 @@ $(document).ready(function () {
         const price = parseFloat($('#carSelect option:selected').data('price'));
         const days = (end - start) / (1000 * 60 * 60 * 24) + 1;
 
+        // prikaz ukupne cijene samo ako su podaci validni
         if (!isNaN(days) && !isNaN(price) && days > 0) {
             const total = (days * price).toFixed(2);
             $('#totalprice_reservation').val(total + " €");
             $('#modalTotalPrice').text(total + " €");
             $('#modalDates').text($('#startDate').val() + " do " + $('#endDate').val());
         } else {
+            // reset ako nešto nije validno
             $('#totalprice_reservation').val("");
             $('#modalTotalPrice').text("");
             $('#modalDates').text("");
         }
     }
 
+    // slanje forme za rezervaciju
     $('#paymentForm').on('submit', function (e) {
         e.preventDefault();
 
@@ -66,25 +74,28 @@ $(document).ready(function () {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
+        // validacija da su datumi u budućnosti
         if (startDate < today || endDate < today) {
-            toastr.error("Datumi moraju biti u budućnosti.");
+            toastr.error("Please select future dates only.");
             return;
         }
 
+        // validacija da je end date poslije start date
         if (endDate < startDate) {
             toastr.error("Datum završetka mora biti poslije datuma početka.");
             return;
         }
 
+        // validacija kartice
         const cardNumber = $('#cardNumber').val().replace(/\s+/g, '');
         if (!/^\d{16}$/.test(cardNumber)) {
-            toastr.error("Broj kartice mora imati tačno 16 cifara.");
+            toastr.error("Card number must be 16 digits.");
             return;
         }
 
         const expiry = $('#expiryDate').val();
         if (!/^\d{2}\/\d{2}$/.test(expiry)) {
-            toastr.error("Datum isteka mora biti u formatu MM/YY.");
+            toastr.error("Expiry must be in MM/YY format.");
             return;
         }
 
@@ -92,16 +103,17 @@ $(document).ready(function () {
         const now = new Date();
         const expDate = new Date(2000 + expYear, expMonth);
         if (isNaN(expDate) || expDate <= now) {
-            toastr.error("Datum isteka mora biti u budućnosti.");
+            toastr.error("The expiration date cannot be in the past.");
             return;
         }
 
         const cvc = $('#cvv').val();
         if (!/^\d{3}$/.test(cvc)) {
-            toastr.error("CVC mora imati tačno 3 cifre.");
+            toastr.error("CVC must be 3 digits.");
             return;
         }
 
+        // kreiranje rezervacije
         const reservation = {
             car_id: $('#carSelect').val(),
             start_date: $('#startDate').val(),
@@ -112,10 +124,12 @@ $(document).ready(function () {
             cvc: cvc
         };
 
+        // slanje rezervacije na backend
         RestClient.post("reservations", reservation, function () {
             toastr.success("Rezervacija uspješna!");
             $('#paymentModal').modal('hide');
 
+            // reset modalnog prikaza
             setTimeout(() => {
                 $('.modal-backdrop').remove();
 
@@ -137,13 +151,15 @@ $(document).ready(function () {
                 $(window).scrollTop(0);
             }, 300);
 
+            // reset forme i podataka
             $('#paymentForm')[0].reset();
             $('#startDate').val('');
             $('#endDate').val('');
             $('#totalprice_reservation').val('');
             $('#pricePerDay').val('');
 
-            loadAvailableCars(); // ✅ reload dropdown odmah nakon rezervacije
+            // ponovo ucitaj dostupne aute
+            loadAvailableCars();
         }, function (err) {
             console.error(err);
             toastr.error("Greška pri rezervaciji.");
