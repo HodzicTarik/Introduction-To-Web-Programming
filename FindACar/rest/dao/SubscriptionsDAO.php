@@ -3,27 +3,30 @@ require_once 'BaseDao.php';
 
 class SubscriptionsDAO extends BaseDao {
     public function __construct() {
+        // poziva konstruktor roditeljske klase i postavlja tabelu na 'subscriptions'
         parent::__construct('subscriptions');
     }
 
-    // ✅ Samo planovi koji su template (admin dashboard)
+    // vraca sve subscription planove koji su template = 1 (admin dashboard koristi ovo)
     public function getTemplatesOnly() {
         $stmt = $this->conn->query("SELECT * FROM subscriptions WHERE is_template = 1");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // ✅ Sve korisničke pretplate (npr. za /subscriptions/available)
+    // vraca sve pretplate koje su dodijeljene korisnicima (is_template = 0)
     public function getAllUserSubscriptions() {
         $stmt = $this->conn->query("SELECT * FROM subscriptions WHERE is_template = 0");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    // vraca jednu pretplatu po ID-u
     public function getById($id) {
         $stmt = $this->conn->prepare("SELECT * FROM subscriptions WHERE id = :id");
         $stmt->execute(['id' => $id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    // ubacuje novu korisnicku pretplatu (is_template = 0)
     public function insert($subscription) {
         $stmt = $this->conn->prepare("INSERT INTO subscriptions (plan, price, description, user_id, start_date, end_date, is_template)
                                     VALUES (:plan, :price, :description, :user_id, :start_date, :end_date, 0)");
@@ -38,7 +41,7 @@ class SubscriptionsDAO extends BaseDao {
         return $this->getById($this->conn->lastInsertId());
     }
 
-
+    // azurira podatke o pretplati (koristi se u admin panelu)
     public function update($id, $subscription) {
         $stmt = $this->conn->prepare("UPDATE subscriptions SET
                                       plan = :plan,
@@ -54,6 +57,7 @@ class SubscriptionsDAO extends BaseDao {
         return $this->getById($id);
     }
 
+    // brise pretplatu iz baze po ID-u
     public function delete($id) {
         $stmt = $this->conn->prepare("DELETE FROM subscriptions WHERE id = :id");
         $stmt->execute(['id' => $id]);

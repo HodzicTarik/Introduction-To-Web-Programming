@@ -1,17 +1,19 @@
-// ✅ admin.js - SPA kompatibilan admin panel sa token validacijom + debug logovi
+// admin.js - spa kompatibilan admin panel sa token validacijom
 
+// inicijalna provjera za globalne varijable za brisanje
 if (typeof window.currentDeleteType === "undefined") {
   window.currentDeleteType = null;
   window.currentDeleteId = null;
 }
 
+// pokretanje admin panela, provjera tokena i role
 function initAdmin() {
-  console.log("✅ Admin SPA section loaded");
+  console.log("admin spa section loaded");
 
   const token = localStorage.getItem("user_token");
 
   if (!token || token === "undefined") {
-    toastr.error("⛔ Morate biti prijavljeni.");
+    toastr.error("morate biti prijavljeni");
     window.location.href = "index.html";
     return;
   }
@@ -19,7 +21,7 @@ function initAdmin() {
   const user = Utils.parseJwt(token)?.user;
 
   if (!user || user.role !== Constants.ADMIN_ROLE) {
-    toastr.error("⛔ Pristup dozvoljen samo administratorima.");
+    toastr.error("pristup dozvoljen samo administratorima");
     window.location.href = "index.html";
     return;
   }
@@ -28,12 +30,14 @@ function initAdmin() {
   fetchSubscriptions();
 }
 
-// ======================== CARS ========================
+// =============== CARS ====================
+
+// ucitavanje liste auta iz baze
 function fetchCars() {
   RestClient.get("api/cars", function (data) {
     if (!Array.isArray(data)) {
-      console.error("❌ fetchCars: expected array, got:", data);
-      toastr.error("Neuspješno učitavanje auta.");
+      console.error("fetchCars: expected array, got:", data);
+      toastr.error("neuspjesno ucitavanje auta");
       return;
     }
 
@@ -57,6 +61,7 @@ function fetchCars() {
   });
 }
 
+// dodavanje novog auta u bazu
 function addCar() {
   const car = {
     brand: $("#carBrand").val(),
@@ -70,12 +75,13 @@ function addCar() {
   };
 
   RestClient.post("api/cars", car, function () {
-    toastr.success("Car added");
+    toastr.success("car added");
     fetchCars();
     $("#addCarModal").modal("hide");
   });
 }
 
+// otvaranje forme za izmjenu auta
 function editCar(id) {
   RestClient.get(`api/cars/${id}`, function (car) {
     $("#editCarId").val(car.id);
@@ -91,6 +97,7 @@ function editCar(id) {
   });
 }
 
+// spremanje izmjena za auto
 function saveCarChanges() {
   const id = $("#editCarId").val();
   const car = {
@@ -110,33 +117,35 @@ function saveCarChanges() {
   });
 }
 
+// =============== SUBSCRIPTIONS ====================
 
-// ======================== SUBSCRIPTIONS ========================
+// ucitavanje svih subskripcija
 function fetchSubscriptions() {
   RestClient.get("api/subscriptions", function (data) {
     if (!Array.isArray(data)) {
-      console.error("❌ fetchSubscriptions: expected array, got:", data);
-      toastr.error("Neuspješno učitavanje pretplata.");
+      console.error("fetchSubscriptions: expected array, got:", data);
+      toastr.error("neuspjesno ucitavanje pretplata");
       return;
     }
 
     let table = "";
     data.forEach(sub => {
-  table += `
-    <tr>
-      <td>${sub.id}</td>
-      <td>${sub.plan}</td>
-      <td>$${sub.price}</td>
-      <td>${sub.description || '-'}</td>
-      <td>
-        <button class="btn btn-warning btn-sm" onclick="editSubscription(${sub.id})">Change</button>
-        <button class="btn btn-danger btn-sm" onclick="confirmDelete('subscription', ${sub.id})">Delete</button>
-      </td>
-    </tr>`;
-});
+      table += `
+        <tr>
+          <td>${sub.id}</td>
+          <td>${sub.plan}</td>
+          <td>$${sub.price}</td>
+          <td>${sub.description || '-'}</td>
+          <td>
+            <button class="btn btn-warning btn-sm" onclick="editSubscription(${sub.id})">Change</button>
+            <button class="btn btn-danger btn-sm" onclick="confirmDelete('subscription', ${sub.id})">Delete</button>
+          </td>
+        </tr>`;
+    });
 
     $("#subscriptionTable").html(table);
 
+    // aktiviranje bootstrap tooltipova ako postoje
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(function (tooltipTriggerEl) {
       return new bootstrap.Tooltip(tooltipTriggerEl);
@@ -144,6 +153,7 @@ function fetchSubscriptions() {
   });
 }
 
+// dodavanje nove subskripcije
 function addSubscription() {
   const sub = {
     plan: $("#subName").val(),
@@ -152,7 +162,7 @@ function addSubscription() {
     user_id: 1
   };
   RestClient.post("api/subscriptions", sub, function () {
-    toastr.success("Subscription added");
+    toastr.success("subscription added");
     fetchSubscriptions();
 
     const modal = bootstrap.Modal.getInstance(document.getElementById("addSubscriptionModal"));
@@ -167,8 +177,7 @@ function addSubscription() {
   });
 }
 
-
-
+// prikaz detalja i edit subskripcije
 function editSubscription(id) {
   RestClient.get(`api/subscriptions/${id}`, function (sub) {
     $("#editSubId").val(sub.id);
@@ -179,6 +188,7 @@ function editSubscription(id) {
   });
 }
 
+// spremanje izmjena subskripcije
 function saveSubscriptionChanges() {
   const id = $("#editSubId").val();
   const sub = {
@@ -187,19 +197,22 @@ function saveSubscriptionChanges() {
     description: $("#editSubDescription").val()
   };
   RestClient.put(`api/subscriptions/${id}`, sub, function () {
-    toastr.success("Subscription updated");
+    toastr.success("subscription updated");
     fetchSubscriptions();
     $("#editSubscriptionModal").modal("hide");
   });
 }
 
-// ======================== DELETE ========================
+// =============== DELETE ====================
+
+// prikaz modala za potvrdu brisanja
 function confirmDelete(type, id) {
   currentDeleteType = type;
   currentDeleteId = id;
   $("#deleteConfirmationModal").modal("show");
 }
 
+// izvrsavanje brisanja
 $(document).on("click", "#confirmDeleteButton", function () {
   let url = "";
   if (currentDeleteType === "car") url = `api/cars/${currentDeleteId}`;
@@ -213,14 +226,16 @@ $(document).on("click", "#confirmDeleteButton", function () {
   });
 });
 
+// obrada zatvaranja modala da se resetuje body
 $(document).on('hidden.bs.modal', function () {
   document.body.style.overflow = 'auto';
   document.body.classList.remove('modal-open');
   $('.modal-backdrop').remove();
 });
 
-// ======================== SPECIAL CARS ========================
+// =============== SPECIAL CARS ====================
 
+// dodavanje special auta
 function addSpecialCar() {
   const car = {
     brand: $("#specialCarBrand").val(),
@@ -234,15 +249,15 @@ function addSpecialCar() {
   };
 
   RestClient.post("api/cars", car, function () {
-    toastr.success("Special Car added");
+    toastr.success("special car added");
     fetchSpecialCars();
     $("#addSpecialCarModal").modal("hide");
   });
 }
 
+// izmjena special auta (ponovo koristi modal od auta)
 function editSpecialCar(id) {
   RestClient.get(`api/cars/${id}`, function (car) {
-    // Reuse existing modal if needed, or implement another
     $("#editCarId").val(car.id);
     $("#editCarBrand").val(car.brand);
     $("#editCarModel").val(car.model);
@@ -254,7 +269,7 @@ function editSpecialCar(id) {
   });
 }
 
-// Dodavanje podrške za brisanje special auta
+// dodavanje podrške za brisanje special auta
 $(document).on("click", "#confirmDeleteButton", function () {
   let url = "";
   if (currentDeleteType === "car") url = `api/cars/${currentDeleteId}`;
@@ -262,11 +277,10 @@ $(document).on("click", "#confirmDeleteButton", function () {
   if (currentDeleteType === "special") url = `api/cars/${currentDeleteId}`;
 
   RestClient.delete(url, null, function () {
-    toastr.success("Deleted successfully");
+    toastr.success("deleted successfully");
     if (currentDeleteType === "car") fetchCars();
     if (currentDeleteType === "subscription") fetchSubscriptions();
     if (currentDeleteType === "special") fetchSpecialCars();
     $("#deleteConfirmationModal").modal("hide");
   });
 });
-

@@ -1,4 +1,4 @@
-// Inicijalizacija karusela za testimoniale
+// inicijalizacija karusela za testimoniale
 function initCarousel() {
     let carouselElement = document.querySelector("#testimonialCarousel");
     if (carouselElement) {
@@ -9,7 +9,8 @@ function initCarousel() {
     }
 }
 
-/*// Prebacivanje između mjesecnih i godisnjih cijena
+/*
+// prebacivanje izmedju mjesecnih i godisnjih cijena
 function initPricingToggle() {
     const toggle = document.getElementById("togglePlan");
     if (!toggle) return;
@@ -29,14 +30,15 @@ function initPricingToggle() {
 
     toggle.addEventListener("change", updatePricing);
     updatePricing();
-}*/
+}
+*/
 
-// Prebacivanje vidljivosti elemenata
+// pomocna funkcija za prebacivanje vidljivosti elemenata
 function toggleVisibility(elements, className, addClass) {
     elements.forEach(element => element.classList.toggle(className, addClass));
 }
 
-// Inicijalizacija FAQ sekcije
+// inicijalizacija faq sekcije (otvaranje pitanja/odgovora)
 function initFAQ() {
     const faqItems = document.querySelectorAll(".faq-item");
 
@@ -54,7 +56,7 @@ function initFAQ() {
     });
 }
 
-// Toggle FAQ odgovora
+// prikazivanje ili sakrivanje odgovora u faq
 function toggleFAQAnswer(answer, icon) {
     if (answer.style.maxHeight) {
         answer.style.maxHeight = null;
@@ -67,7 +69,7 @@ function toggleFAQAnswer(answer, icon) {
     }
 }
 
-// Otvaranje modala za login/register forme
+// otvaranje login/register modala sa izmjenom teksta
 function openAuthModal(mode) {
     const modalTitle = document.getElementById("authModalLabel");
     const registerFields = document.getElementById("register-extra-fields");
@@ -92,13 +94,13 @@ function openAuthModal(mode) {
     authModal.show();
 }
 
-// Uklanjanje backdrop slojeva
+// uklanjanje modala sa strane kad se zatvori
 function removeModalBackdrop() {
     document.querySelectorAll(".modal-backdrop").forEach(el => el.remove());
     document.body.classList.remove("modal-open");
 }
 
-// Onemogućavanje scrolla prilikom otvaranja modala
+// postavljanje event listenera kada se dokument ucita
 document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("toggleAuthMode").addEventListener("click", function (event) {
         event.preventDefault();

@@ -1,5 +1,7 @@
+// ako restclient nije vec definisan, definisi ga
 if (typeof RestClient === "undefined") {
   var RestClient = {
+    // get metoda za dohvat podataka
     get: function (url, callback, error_callback) {
       const token = localStorage.getItem("user_token");
       $.ajax({
@@ -13,11 +15,12 @@ if (typeof RestClient === "undefined") {
         success: callback,
         error: function (jqXHR) {
           if (error_callback) error_callback(jqXHR);
-          else toastr.error(jqXHR.responseText || "GET error.");
+          else toastr.error(jqXHR.responseText || "get error");
         }
       });
     },
 
+    // post metoda za slanje podataka
     post: function (url, data, callback, error_callback) {
       $.ajax({
         url: Constants.PROJECT_BASE_URL + url,
@@ -32,11 +35,12 @@ if (typeof RestClient === "undefined") {
         },
         error: function (jqXHR) {
           if (error_callback) error_callback(jqXHR);
-          else toastr.error(jqXHR.responseText || "POST error.");
+          else toastr.error(jqXHR.responseText || "post error");
         }
       });
     },
 
+    // put metoda za azuriranje podataka
     put: function (url, data, callback, error_callback) {
       $.ajax({
         url: Constants.PROJECT_BASE_URL + url,
@@ -51,11 +55,12 @@ if (typeof RestClient === "undefined") {
         },
         error: function (jqXHR) {
           if (error_callback) error_callback(jqXHR);
-          else toastr.error(jqXHR.responseText || "PUT error.");
+          else toastr.error(jqXHR.responseText || "put error");
         }
       });
     },
 
+    // patch metoda za parcijalno azuriranje
     patch: function (url, data, callback, error_callback) {
       $.ajax({
         url: Constants.PROJECT_BASE_URL + url,
@@ -70,11 +75,12 @@ if (typeof RestClient === "undefined") {
         },
         error: function (jqXHR) {
           if (error_callback) error_callback(jqXHR);
-          else toastr.error(jqXHR.responseText || "PATCH error.");
+          else toastr.error(jqXHR.responseText || "patch error");
         }
       });
     },
 
+    // delete metoda za brisanje podataka
     delete: function (url, data, callback, error_callback) {
       $.ajax({
         url: Constants.PROJECT_BASE_URL + url,
@@ -89,7 +95,7 @@ if (typeof RestClient === "undefined") {
         },
         error: function (jqXHR) {
           if (error_callback) error_callback(jqXHR);
-          else toastr.error(jqXHR.responseText || "DELETE error.");
+          else toastr.error(jqXHR.responseText || "delete error");
         }
       });
     }
